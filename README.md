@@ -1,42 +1,77 @@
-# whatsapp_chat_stats
+# whatsapp-chat-stats
 
-WhatsApp chat analytics dashboard built with Python and Dash. Input is a
-folder of exported chats; if a chat is split across multiple files, the
-parser will merge them.
+Utilities for analyzing WhatsApp chat exports.
 
-## Status
-- Scaffold only for now; app code to be generated next.
-- Local virtual environment `.venv/` exists.
+Requirements:
+- Python 3.13+ (as specified in `pyproject.toml`)
+- uv (Python package manager): https://docs.astral.sh/uv/
+  - Quick install (macOS/Linux): 
+    ```
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
 
-## Environment Setup
-- Python: 3.10+ recommended.
-- Activate existing env:
-  - macOS/Linux: `source .venv/bin/activate`
-  - Windows: `.\\.venv\\Scripts\\activate`
-- If you need to create it:
-  - Standard: `python -m venv .venv`
-  - Using uv: `uv venv .venv`
-- Install dependencies (after scaffolding adds `requirements.txt`):
-  - pip: `pip install -r requirements.txt`
-  - uv: `uv pip install -r requirements.txt`
-- Deactivate: `deactivate`
+## Setup using uv (virtual environment required)
 
-## Run The App
-- Ensure your `.venv` is active and deps installed:
-  - `pip install -r requirements.txt` (or `uv pip install -r requirements.txt`)
-- Start the server: `python app.py`
-- Open the app URL shown in the terminal (typically `http://127.0.0.1:8050`).
-- Upload your WhatsApp export files:
-  - Drag-and-drop `.txt` files directly, or
-  - Upload a `.zip` containing multiple `.txt` exports.
+Do not install dependencies globally. Always use a virtual environment created by uv.
 
-## Next Steps
-- Enhance the parser to support more export formats and edge cases.
-- Add more visualizations: emoji frequency, hourly/day-of-week activity, word clouds.
+1) Create a virtual environment with uv:
+```
+uv venv .venv
+```
 
-## Contributing
-- Keep changes minimal and focused.
-- See `AGENTS.md` for collaboration, approvals, and coding conventions.
+2) Activate it:
+```
+source .venv/bin/activate
+```
 
-## License
-- Add a license of your choice when ready.
+3) Verify you are inside the venv (any one of these should work):
+- Your shell prompt shows `(.venv)` at the start
+- `echo $VIRTUAL_ENV` prints a path
+- `which python` points to `.../.venv/bin/python`
+
+If you are not in a venv, go back to step 2. Do not run installs without the venv active.
+
+## Install dependencies (inside the venv only)
+
+With the venv active:
+```
+uv pip install --upgrade pip
+uv pip install -r requirements.txt
+```
+
+This project currently requires:
+```
+dash>=3,<4
+```
+
+Note: `uv pip` respects your active virtual environment and will install into `.venv` when it is activated.
+
+## Running
+
+With the venv active:
+```
+python main.py
+```
+
+## Adding or updating dependencies
+
+- Edit `requirements.txt` (e.g., add `somepkg>=1,<2`), then run:
+```
+uv pip install -r requirements.txt
+```
+- Keep all required packages listed in `requirements.txt`. Do not install packages globally.
+
+## Troubleshooting
+
+- If your Python version is less than 3.13, recreate the environment with a specific interpreter:
+```
+rm -rf .venv
+uv venv --python 3.13 .venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+```
+- If installs appear to go to a system path, your venv is not active. Re-run:
+```
+source .venv/bin/activate
+```
+then install again with `uv pip -r requirements.txt`.

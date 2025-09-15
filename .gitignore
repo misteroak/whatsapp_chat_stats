@@ -1,42 +1,134 @@
-# Python
+# Python Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-.Python
 
-# Virtual environments
-.venv/
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django/Flask common
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+instance/
+.webassets-cache
+
+# Scrapy
+.scrapy
+
+# Sphinx docs
+docs/_build/
+doc/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Pipenv
+pipenv-*
+
+# Poetry
+# Uncomment if you do NOT want to track the lock file
+# poetry.lock
+
+# PDM
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# Environments
+.env
+.env.*
+.venv
 venv/
 ENV/
 env/
-.env
-.env.*
-.python-version
+env.bak/
+venv.bak/
 
-# Packaging
-build/
-dist/
-wheelhouse/
-*.egg-info/
-*.egg
+# mkdocs
+/site
 
-# Testing
-.pytest_cache/
+# Type checkers
 .mypy_cache/
-.ruff_cache/
-.coverage
-.coverage.*
-coverage.xml
-htmlcov/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
 
-# IDE/editor
+# Ruff / lint caches
+.ruff_cache/
+
+# Cython debug symbols
+cython_debug/
+
+# Editors/IDE
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# OS
+# macOS
 .DS_Store
-Thumbs.db
-\n+# App runtime
-tmp/
+
+# Logs
+*.log

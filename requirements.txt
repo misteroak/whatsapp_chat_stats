@@ -1,6 +1,2 @@
-dash>=2.17
-plotly>=5.22
-pandas>=2.2
-python-dateutil>=2.9
-emoji>=2.12
-dash-mantine-components>=0.12
+dash>=3,<4
+dash-mantine-components>=0.14

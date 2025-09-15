@@ -1,209 +1,155 @@
-# AGENTS.md — Collaboration Guide for Codex CLI Agents
+# AGENTS.md — WhatsApp Chat Stats Dashboard (Dash + Mantine)
 
-This repository uses Codex CLI to collaborate with AI coding agents. This guide defines how agents and humans work together here: approvals, safety, coding standards, and response conventions. Keep changes minimal and focused; ask when unsure.
+## Overview
+Python Dash application to analyze one or more WhatsApp chat exports (iOS) with a high-quality Mantine UI. Users can upload a folder or multiple .txt files (or a .zip), which are parsed, normalized, and indexed for real-time interactive queries and visualizations.
 
-## Audience & Scope
-- For: AI agents and maintainers collaborating via Codex CLI.
-- Covers: How to plan work, use tools, edit files, validate changes, and hand off results.
-- Defaults: Workspace-write filesystem, restricted network, on-request approvals (may vary per session).
+Key visuals:
+- Top words and emojis
+- Messages over time
+- Activity heatmap (hour × weekday)
+- Participant-level stats
+- Search-driven, real-time updates across charts
 
----
+All custom styles live in `assets/styles.css` (no inline styles). Mantine UI is used via `dash-mantine-components` for a cohesive, modern look.
 
-## Quick Start (for Agents)
-1) Decide if a plan is needed.
-   - Simple, single-step tasks: no plan.
-   - Multi-step or ambiguous tasks: use the `update_plan` tool.
+## Tech Stack
+- Python 3.10+
+- Dash 3.x + dash-mantine-components (Mantine UI)
+- Plotly (charts)
+- Pandas / NumPy (data wrangling)
+- emoji (emoji detection)
+- NLTK stopwords (text normalization)
+- Optional: rapidfuzz (fuzzy search), duckdb (columnar queries), diskcache (long callbacks)
+- Env and packaging: uv (pyproject.toml, uv.lock)
 
-2) Announce actions before tool calls.
-   - One short preamble sentence grouping related actions (8–12 words).
+## Upload and Indexing Strategy
+- Input formats:
+  - Multiple .txt files (iOS export) via multi-file upload
+  - Optional .zip of exports (we’ll extract server-side)
+- Parsing:
+  - Robust parser for iOS formats, multiline messages, media markers
+  - Normalize timestamps with timezone/localization
+  - Columns: `timestamp`, `author`, `message`, `emojis`, `date`, `hour`, `weekday`, `is_media`, `file_id`
+- Indexing pipeline (in-memory by default):
+  1. Normalize text (Unicode NFKC, lowercase, punctuation cleanup; keep emojis)
+  2. Tokenize; remove stopwords (NLTK) and short tokens
+  3. Build inverted indexes (dict: token -> numpy array of row indices)
+  4. Emoji index (emoji -> indices)
+  5. Fast access maps (author -> indices), precomputed time buckets
+  6. Optional: TF-IDF weights for scoring, cached per token
+- Query engine:
+  - Boolean modes: AND (all terms), OR (any term), Phrase (quoted)
+  - Optional fuzzy matching (rapidfuzz) with adjustable threshold
+  - Filters: date range, participants, has media, keyword(s), emojis
+  - Returns masks/rows used to update visuals in near real-time
+- Caching & session model:
+  - Index lives in server memory (per Dash worker) keyed by session id
+  - dcc.Store keeps lightweight parameters; heavy data remain server-side
+  - Memoization (lru_cache) on (filters, query) to avoid recomputation
+  - Optional duckdb index for very large chats (fallback path)
 
-3) Prefer fast reads and small chunks.
-   - Use `rg` for search; read files in <=250-line chunks.
+## Long Operations — UX and Feedback
+- On upload/indexing:
+  - Show overlay (dmc.Loading) and progress bar with status text
+  - Disable controls during parse/index step; re-enable when ready
+  - Notifications on success/error (dmc.NotificationsProvider)
+- During queries:
+  - Debounced inputs (300–500ms); lightweight loader in chart cards
+  - For heavy ops, use Dash `long_callback` + Diskcache
 
-4) Edit files with `apply_patch` only.
-   - Do not use ad-hoc shell redirection to write files.
+## UI/UX Principles
+- Mantine theme via `dmc.MantineProvider` (colors/typography)
+- Responsive layout with `dmc.AppShell` (Header, Navbar)
+- Reusable cards/components; all custom CSS in `assets/styles.css`
+- Accessible focus states, readable contrasts, ARIA labels
 
-5) Validate changes where practical.
-   - Run narrow tests or commands relevant to your edits. Avoid slow/global runs unless requested.
+## Core Features
+1. Multi-file/folder upload with clear instructions (and optional .zip support)
+2. Parsing + normalization for iOS exports
+3. Real-time query bar (AND/OR/Phrase, optional fuzzy)
+4. Filters: date range, participants, has-media, emoji selection
+5. Charts:
+   - Top words, top emojis
+   - Messages over time (daily)
+   - Activity heatmap (weekday × hour)
+   - Participant breakdown
+6. KPIs: message count, participants, time span, messages/day
 
-6) Summarize and propose next steps.
-   - Keep final messages concise, structured, and actionable.
+## Data Model (conceptual)
+DataFrame columns:
+- `timestamp` (datetime), `date`, `hour`, `weekday`
+- `author` (str), `message` (str)
+- `emojis` (list[str])
+- `is_media` (bool), `file_id` (str)
 
----
+Indexes:
+- `token_index`: {token: np.ndarray[int]}
+- `emoji_index`: {emoji: np.ndarray[int]}
+- `author_index`: {author: np.ndarray[int]}
+- Optional `tfidf`: {token: weight}, doc_len arrays
 
-## Approvals, Sandbox, and Safety
-- Mode: on-request
-  - Run normally in sandbox; request escalation only if needed (e.g., network access or writing outside workspace).
-- Filesystem: workspace-write
-  - You may read and write within this repo. Do not modify outside the workspace.
-- Network: restricted
-  - Any command requiring network access must be explicitly approved. Provide a one-sentence justification.
-- Destructive actions
-  - Ask before `rm`, `git reset`, large refactors, or anything that could lose state.
-- GUI/open
-  - Opening external apps or links requires approval.
-
-When escalation is required, state:
+## Architecture and Structure
 ```
-- Command(s): what you plan to run
-- Reason: why escalation is necessary
-- Alternatives: if any safe workaround exists
-```
-
----
-
-## Tooling Conventions
-- Preambles: Always send a brief note before grouped tool calls.
-- Search: Use `rg`/`rg --files` (fallback to `grep`/`find` if unavailable).
-- File edits: Use `apply_patch` with minimal diffs; include only the intended changes.
-- Reading files: Limit outputs to <=250 lines per read.
-- Plans: Use `update_plan` only for non-trivial, multi-step tasks. Keep steps short (5–7 words), one `in_progress` at a time.
-
----
-
-## Coding Standards
-- Scope: Fix the root cause relevant to the task; avoid unrelated changes.
-- Style: Match existing patterns; keep code simple and focused.
-- Comments: Avoid inline comments unless the user asks for them.
-- Naming: Avoid single-letter variables unless contextually conventional.
-- Licenses: Do not add copyright/license headers unless asked.
-- Citations/Formatting: Do not include bracketed citations or ANSI codes in responses.
-- File creation: Reference files using clickable paths and 1-based line numbers.
-
----
-
-## Responses: Structure and Tone
-- Headers: Use when helpful, 1–3 words, `**Title Case**`.
-- Bullets: `- ` followed by bold keyword and short description.
-- Monospace: Wrap commands, file paths, env vars, and code identifiers in backticks.
-- File references: Use standalone, clickable paths with optional `:line`.
-  - Examples: `src/app.ts`, `src/app.ts:42`, `b/server/index.js#L10`.
-- Voice: Concise, friendly, and factual. Present tense, active voice.
-
-Example final message outline:
-```
-**What Changed**
-- Summary: concise description of edits and rationale.
-
-**Files**
-- `path/to/file.ext:line`: short note on change.
-
-**Next Steps**
-- Suggest: tests to run, config to update, or follow-ups.
-```
-
----
-
-## Validation Philosophy
-- Specific first: Verify only what you changed, then expand scope if needed.
-- Don’t add new frameworks/tools just to validate.
-- If tests exist nearby, run them; otherwise, propose a light check.
-- In non-interactive modes, be proactive; in on-request, confirm before heavy runs.
-
----
-
-## Git Practices
-- Default: Do not commit unless explicitly requested.
-- If asked to commit:
-  - Branch naming: `feat/…`, `fix/…`, `chore/…` as appropriate.
-  - Conventional Commits style is preferred:
-    - `feat: add X`
-    - `fix: correct Y`
-    - `docs: update Z`
-- Initial repo setup: add `.gitignore`, `README.md`, and make an initial commit upon request.
-
----
-
-## Security & Privacy
-- Do not check secrets or tokens into the repo.
-- Do not fetch from the network without approval or necessity.
-- Avoid printing large environment dumps or tokens in logs.
-
----
-
-## When to Ask vs. Act
-- Ask when:
-  - Requirements are ambiguous; multiple viable designs exist.
-  - The task implies destructive changes or external dependencies.
-  - You need approvals for network or non-workspace writes.
-- Act when:
-  - The task is small, local, and reversible.
-  - The change is clearly scoped and consistent with existing patterns.
-
----
-
-## Handy Templates
-
-Preamble examples:
-```
-"I’ll add the parser and wire tests."
-"Explored the repo; now updating API routes."
-"Next, I’ll scaffold CLI commands and helpers."
+whatsapp_chat_stats/
+  app.py
+  pyproject.toml
+  uv.lock
+  assets/
+    styles.css
+  components/
+    __init__.py
+    layout.py          # AppShell, header, navbar
+    upload.py          # multi-file upload UI + instructions
+    filters.py         # query bar, date/author controls
+    charts.py          # plotly charts in dmc Cards
+    kpis.py            # summary metrics cards
+  utils/
+    parser.py          # parse iOS text exports
+    indexing.py        # MessageIndex: build + query inverted indexes
+    text_cleaning.py   # normalization, tokenization, stopwords
+    emojis.py          # emoji extraction and counting
+    aggregations.py    # groupbys for visuals
+    sessions.py        # session handling + global cache
 ```
 
-Plan example (good):
-```
-1. Add CLI entry with args
-2. Parse Markdown via CommonMark
-3. Apply semantic HTML template
-4. Handle code blocks/images/links
-5. Add error handling
-```
+## Callback Strategy
+- Upload -> server stores raw files -> parse -> build `MessageIndex` -> cache keyed by session
+- Filters + query -> compute mask via `MessageIndex` -> return data slices to charts
+- `dcc.Loading` around charts; disable controls during indexing; progress bar for upload/parse
 
-Escalation request example:
-```
-- Command: npm install
-- Reason: Need dependency to run tests
-- Alternatives: Skip tests or use vendored lockfile (none available)
-```
+## Optional SQLite/DuckDB Path
+- For very large datasets:
+  - DuckDB for aggregations and filtering
+  - SQLite FTS5 (if available) for full-text search
+- Default remains in-memory for simplicity and speed on typical chat sizes
 
-Final message example:
-```
-**What Changed**
-- Implemented X with Y approach; minimal surface area; added tests.
+## Setup with uv
+- Install uv:
+  - macOS (Homebrew): `brew install uv`
+  - Official: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- Initialize:
+  - `uv init`
+- Add dependencies:
+  - Core: `uv add "dash>=3,<4" dash-mantine-components plotly pandas emoji nltk`
+  - Optional search/scale: `uv add rapidfuzz duckdb diskcache`
+- One-time NLTK data:
+  - `uv run python -c "import nltk; nltk.download('stopwords')"`
+- Run:
+  - `uv run python app.py`
 
-**Files**
-- `src/x.ts:1`: new module with core logic.
-- `test/x.test.ts:1`: coverage for edge cases.
+## Testing
+- Parser tests across sample iOS exports (different locales)
+- Indexing tests (tokenization, phrase queries, emoji extraction)
+- Callback smoke tests (filters + charts)
+- Performance checks (typing latency, query response ≲ ~100ms on typical chats)
 
-**Next Steps**
-- Run `npm test` locally; confirm Node 18+.
-```
+## Non-Goals (initial)
+- Cross-conversation analytics across many exports simultaneously
+- Persistent DB beyond session cache
+- Cloud multi-user deployment
 
----
-
-## Repo-Specific Notes
-- Project: `whatsapp_chat_stats` — WhatsApp chat analytics dashboard.
-- Overview: Lightweight dashboard built with Python and Dash. Input is a
-  folder containing WhatsApp chat exports; chats may be split across multiple
-  files and should be merged during parsing.
-- Visualizations: Interactive stats like who texts more, common words,
-  top emojis, and activity over time.
-- Stack: Python + Dash (Plotly).
-
-- Dash styling preference:
-  - Keep layout and component styling in CSS under `assets/styles.css`.
-  - Avoid inline Dash `style={...}` except for dynamic, data-driven tweaks.
-  - Use meaningful `className`s on components and group rules in CSS.
-  - Plotly figure styling (e.g., `update_layout`) remains in Python.
-
-- Suggested bootstrap:
-  - Add a Python-focused `.gitignore`.
-  - Create `README.md` with quick start instructions.
-  - Scaffold a minimal Dash app (`app.py`) and a parser module.
-  - Configure any formatters or linters you plan to use.
-
-If you want me to generate these bootstrap files (Dash app + parser), ask.
-
----
-
-## FAQ
-- Can the agent run networked commands? Only with approval in this setup.
-- Will the agent commit code? Not unless explicitly asked to commit.
-- How verbose should responses be? Default to concise, increase detail when helpful.
-- How are files edited? Exclusively via `apply_patch` patches.
-
----
-
-## Changelog
-- v1: Initial AGENTS.md scaffold for Codex CLI collaboration.
+## Next steps
+- Initialize uv project and add dependencies
+- Scaffold modules (utils/components) and assets/styles.css
+- Implement parser + MessageIndex MVP with unit tests
+- Wire upload -> index -> query pipeline with loaders and progress
