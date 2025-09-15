@@ -1,0 +1,72 @@
+.app-container {
+  font-family: system-ui, sans-serif;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.path-input {
+  flex: 1;
+}
+
+.status-text {
+  margin-top: 12px;
+  color: #555;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.system-messages {
+  margin-top: 12px;
+  border-top: 1px solid #eee;
+  padding-top: 8px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.system-messages ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.system-messages li {
+  margin: 4px 0;
+  color: #333;
+}
+
+/* Top words table */
+.top-words {
+  margin-top: 12px;
+  max-height: 420px;
+  overflow: auto;
+  border-top: 1px solid #eee;
+  padding-top: 8px;
+}
+
+.word-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.word-table th, .word-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.word-table thead th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
+}
