@@ -8,6 +8,7 @@ from datetime import datetime
 
 import pandas as pd
 from dash import Dash, Input, Output, State, dcc, html, callback
+import dash_mantine_components as dmc
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -20,45 +21,113 @@ app.title = "WhatsApp Chat Stats"
 
 def _empty_fig(msg: str = "No data"):
     fig = go.Figure()
-    fig.add_annotation(text=msg, xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False)
+    fig.add_annotation(text=msg, xref="paper", yref="paper",
+                       x=0.5, y=0.5, showarrow=False)
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
     fig.update_layout(margin=dict(l=20, r=20, t=20, b=20))
     return fig
 
 
-app.layout = html.Div(
-    className="app-container",
-    children=[
-        html.H1("WhatsApp Chat Stats"),
-        html.P("Upload WhatsApp export files (.txt) or a .zip containing them."),
-        dcc.Upload(
-            id="uploader",
-            children=html.Div(["Drag and drop or ", html.A("Select files")]),
-            multiple=True,
-            className="upload-box",
-        ),
-        html.Div(id="status", className="status-text"),
-        html.Hr(),
-        html.Div(
-            id="metrics",
-            className="metrics-grid",
+app.layout = html.Div([
+    dcc.Store(id="color-scheme-store", data="light"),
+    dmc.MantineProvider(
+        id="mantine-provider",
+        theme={"colorScheme": "light"},
+        children=html.Div(
+            className="app-container",
             children=[
-                html.Div([html.Div("Messages"), html.H3(id="m_count", children="-")]),
-                html.Div([html.Div("Participants"), html.H3(id="m_participants", children="-")]),
-                html.Div([html.Div("Date Range"), html.H3(id="m_range", children="-")]),
+                html.Div(
+                    className="app-header",
+                    children=[
+                        dmc.Title("WhatsApp Chat Stats", order=2),
+                        html.Button("Toggle Theme", id="toggle-theme", className="theme-toggle"),
+                    ],
+                ),
+                html.Div(
+                    className="content-grid",
+                    children=[
+                        html.Div(
+                            className="sidebar",
+                            children=[
+                                dmc.Text(
+                                    "Upload WhatsApp export .txt files or a .zip containing them.",
+                                    size="sm",
+                                ),
+                                html.Div(style={"height": "8px"}),
+                                dmc.Text("Inputs", size="sm", className="label-strong"),
+                                html.Div(style={"height": "6px"}),
+                                dcc.Upload(
+                                    id="uploader",
+                                    children=dmc.Paper(
+                                        withBorder=True,
+                                        shadow="xs",
+                                        p="md",
+                                        radius="sm",
+                                        children=dmc.Text(
+                                            "Drag and drop or click to select files",
+                                        ),
+                                    ),
+                                    multiple=True,
+                                ),
+                                html.Div(id="status", className="status-text"),
+                            ],
+                        ),
+                        html.Div(
+                            className="main",
+                            children=[
+                                html.Div(
+                                    className="metrics-grid",
+                                    children=[
+                                        dmc.Paper(
+                                            withBorder=True,
+                                            p="md",
+                                            radius="sm",
+                                            children=[
+                                                dmc.Text("Messages", size="sm"),
+                                                dmc.Title(id="m_count", order=2, children="-"),
+                                            ],
+                                        ),
+                                        dmc.Paper(
+                                            withBorder=True,
+                                            p="md",
+                                            radius="sm",
+                                            children=[
+                                                dmc.Text("Participants", size="sm"),
+                                                dmc.Title(id="m_participants", order=2, children="-"),
+                                            ],
+                                        ),
+                                        dmc.Paper(
+                                            withBorder=True,
+                                            p="md",
+                                            radius="sm",
+                                            children=[
+                                                dmc.Text("Date Range", size="sm"),
+                                                dmc.Title(id="m_range", order=4, children="-"),
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                                html.Div(style={"height": "16px"}),
+                                dmc.Title("Messages by Sender", order=3),
+                                dmc.Paper(withBorder=True, p="sm", radius="sm", children=dcc.Graph(id="by_sender", figure=_empty_fig())),
+                                html.Div(style={"height": "16px"}),
+                                dmc.Title("Messages Over Time", order=3),
+                                dmc.Paper(withBorder=True, p="sm", radius="sm", children=dcc.Graph(id="over_time", figure=_empty_fig())),
+                                html.Div(style={"height": "16px"}),
+                                dmc.Title("Top Words", order=3),
+                                dmc.Paper(withBorder=True, p="sm", radius="sm", children=html.Div(id="top_words", className="top-words")),
+                                html.Div(style={"height": "16px"}),
+                                dmc.Title("System Messages", order=3),
+                                dmc.Paper(withBorder=True, p="sm", radius="sm", children=html.Div(id="system_messages", className="system-messages")),
+                            ],
+                        ),
+                    ],
+                ),
             ],
         ),
-        html.H2("Messages by Sender"),
-        dcc.Graph(id="by_sender", figure=_empty_fig()),
-        html.H2("Messages Over Time"),
-        dcc.Graph(id="over_time", figure=_empty_fig()),
-        html.H2("Top Words"),
-        html.Div(id="top_words", className="top-words"),
-        html.H2("System Messages"),
-        html.Div(id="system_messages", className="system-messages"),
-    ],
-)
+    ),
+])
 
 
 def _save_uploads_to_tmp(contents_list, filenames) -> Path | None:
@@ -108,9 +177,10 @@ def _save_uploads_to_tmp(contents_list, filenames) -> Path | None:
     Output("system_messages", "children"),
     Input("uploader", "contents"),
     State("uploader", "filename"),
+    State("color-scheme-store", "data"),
     prevent_initial_call=False,
 )
-def handle_upload(contents, filenames):
+def handle_upload(contents, filenames, color_scheme):
     if not contents:
         return (
             "Upload .txt files or a .zip to begin",
@@ -127,10 +197,12 @@ def handle_upload(contents, filenames):
         # Dash provides either a single str or a list depending on multiple=True
         if isinstance(contents, str):
             contents_list = [contents]
-            filenames_list = [filenames] if isinstance(filenames, str) else filenames
+            filenames_list = [filenames] if isinstance(
+                filenames, str) else filenames
         else:
             contents_list = contents
-            filenames_list = filenames if isinstance(filenames, list) else [filenames]
+            filenames_list = filenames if isinstance(
+                filenames, list) else [filenames]
 
         folder = _save_uploads_to_tmp(contents_list, filenames_list)
         if folder is None:
@@ -164,15 +236,28 @@ def handle_upload(contents, filenames):
         date_range = f"{df['timestamp'].min().date()} → {df['timestamp'].max().date()}"
 
         # Messages by sender
-        by_sender = df.groupby("sender").size().reset_index(name="messages").sort_values("messages", ascending=False)
+        by_sender = df.groupby("sender").size().reset_index(
+            name="messages").sort_values("messages", ascending=False)
         fig_sender = px.bar(by_sender, x="sender", y="messages")
-        fig_sender.update_layout(margin=dict(l=20, r=20, t=20, b=40), xaxis_title="Sender", yaxis_title="Messages")
+        fig_sender.update_layout(
+            template="plotly_dark" if (
+                color_scheme or "light") == "dark" else "plotly_white",
+            margin=dict(l=20, r=20, t=20, b=40),
+            xaxis_title="Sender",
+            yaxis_title="Messages",
+        )
 
         # Messages over time (daily)
         dfd = df.set_index("timestamp").sort_index()
         daily = dfd.resample("1D").size().reset_index(name="messages")
         fig_time = px.area(daily, x="timestamp", y="messages")
-        fig_time.update_layout(margin=dict(l=20, r=20, t=20, b=40), xaxis_title="Date", yaxis_title="Messages")
+        fig_time.update_layout(
+            template="plotly_dark" if (
+                color_scheme or "light") == "dark" else "plotly_white",
+            margin=dict(l=20, r=20, t=20, b=40),
+            xaxis_title="Date",
+            yaxis_title="Messages",
+        )
 
         # Top words (top 500)
         import re
@@ -191,12 +276,14 @@ def handle_upload(contents, filenames):
 
         top_items = counts.most_common(500)
         if top_items:
-            header = html.Thead(html.Tr([html.Th("#"), html.Th("Word"), html.Th("Count")]))
+            header = html.Thead(
+                html.Tr([html.Th("#"), html.Th("Word"), html.Th("Count")]))
             rows = [
                 html.Tr([html.Td(i + 1), html.Td(word), html.Td(cnt)])
                 for i, (word, cnt) in enumerate(top_items)
             ]
-            top_words_children = html.Table([header, html.Tbody(rows)], className="word-table")
+            top_words_children = html.Table(
+                [header, html.Tbody(rows)], className="word-table")
         else:
             top_words_children = "No data"
 
@@ -231,3 +318,26 @@ def handle_upload(contents, filenames):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+# Theme toggle + provider sync
+
+
+@callback(
+    Output("color-scheme-store", "data"),
+    Input("toggle-theme", "n_clicks"),
+    State("color-scheme-store", "data"),
+    prevent_initial_call=True,
+)
+def _toggle_theme(n, current):
+    if not n:
+        return current or "light"
+    return "dark" if (current or "light") == "light" else "light"
+
+
+@callback(
+    Output("mantine-provider", "theme"),
+    Input("color-scheme-store", "data"),
+)
+def _sync_providers(scheme):
+    scheme = scheme or "light"
+    return {"colorScheme": scheme}
