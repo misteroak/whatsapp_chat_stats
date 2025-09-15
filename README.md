@@ -42,6 +42,7 @@ uv pip install -r requirements.txt
 This project currently requires:
 ```
 dash>=3,<4
+dash-mantine-components>=0.14
 ```
 
 Note: `uv pip` respects your active virtual environment and will install into `.venv` when it is activated.
@@ -50,7 +51,7 @@ Note: `uv pip` respects your active virtual environment and will install into `.
 
 With the venv active:
 ```
-python main.py
+python app.py
 ```
 
 ## Adding or updating dependencies
