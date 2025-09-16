@@ -1,0 +1,54 @@
+/* Main stylesheet for WhatsApp Chat Stats */
+
+:root {
+    --primary-color: #4c6ef5;
+    --secondary-color: #15aabf;
+    --background-gradient: radial-gradient(1200px 600px at 100% 0%, #e7f5ff 0%, #f8f9fa 40%, #ffffff 100%);
+    --card-background: rgba(255, 255, 255, 0.7);
+    --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --border-radius-lg: 16px;
+    --spacing-md: 24px;
+    --spacing-lg: 32px;
+}
+
+/* App container - actively used */
+.app-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+    background: var(--background-gradient);
+}
+
+/* Main content card - actively used */
+.main-card {
+    text-align: center;
+    backdrop-filter: blur(6px);
+    background: var(--card-background);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+    max-width: 640px;
+    width: 100%;
+    padding: var(--spacing-lg) var(--spacing-md);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .app-container {
+        padding: 16px;
+    }
+
+    .main-card {
+        padding: var(--spacing-md) 16px;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
