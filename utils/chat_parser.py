@@ -25,6 +25,12 @@ class WhatsAppParser:
     def __init__(self):
         # Common WhatsApp timestamp and message patterns
         self.patterns = [
+            # Format: [DD/MM/YY, HH:MM:SS AM/PM] Name: Message
+            {
+                'regex': r'^\[(\d{1,2}/\d{1,2}/\d{2,4}),\s(\d{1,2}:\d{2}:\d{2}\s[AP]M)\]\s(.+?):\s(.*)$',
+                'date_format': '%d/%m/%y',
+                'time_format': '%I:%M:%S %p'
+            },
             # Format: [DD/MM/YY, HH:MM:SS] Name: Message
             {
                 'regex': r'^\[(\d{1,2}/\d{1,2}/\d{2,4}),\s(\d{1,2}:\d{2}:\d{2})\]\s(.+?):\s(.*)$',

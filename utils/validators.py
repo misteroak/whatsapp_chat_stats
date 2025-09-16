@@ -26,6 +26,8 @@ def is_whatsapp_chat_format(content: str) -> Tuple[bool, Optional[str]]:
 
     # Common WhatsApp timestamp patterns
     whatsapp_patterns = [
+        # Format: [DD/MM/YY, HH:MM:SS AM/PM] Name: Message
+        r'^\[\d{1,2}/\d{1,2}/\d{2,4},\s\d{1,2}:\d{2}:\d{2}\s[AP]M\]\s.+?:\s',
         # Format: [DD/MM/YY, HH:MM:SS] Name: Message
         r'^\[\d{1,2}/\d{1,2}/\d{2,4},\s\d{1,2}:\d{2}:\d{2}\]\s.+?:\s',
         # Format: DD/MM/YYYY, HH:MM - Name: Message
@@ -36,28 +38,65 @@ def is_whatsapp_chat_format(content: str) -> Tuple[bool, Optional[str]]:
         r'^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\s-\s.+?:\s'
     ]
 
-    # Check first few lines for WhatsApp format
+    # WhatsApp system message patterns (these are valid but don't follow user message format)
+    system_message_patterns = [
+        # System messages often start with invisible characters or special formatting
+        r'^\s*‎.*',  # Messages starting with invisible characters
+        r'^\s*\[.*\]\s.*:\s‎.*',  # System messages with timestamps
+        r'.*end-to-end encrypted.*',
+        r'.*disappearing messages.*',
+        r'.*image omitted.*',
+        r'.*video omitted.*',
+        r'.*audio omitted.*',
+        r'.*document omitted.*',
+        r'.*created group.*',
+        r'.*changed the subject to.*',  # More specific subject change pattern
+        r'.*changed this group\'s icon.*',  # Group icon changes
+        r'.*security code changed.*',
+        r'.*joined using.*invite link.*',
+        # Additional specific WhatsApp system message patterns
+        r'.*removed.*from.*group.*',  # "Admin removed John from group"
+        r'.*made.*admin.*',  # "John made Mary an admin"
+        r'.*no longer.*admin.*',  # "John is no longer an admin"
+        r'.*group description.*',  # Group description changes
+        r'.*pinned.*message.*',  # Pinned messages
+        r'.*unpinned.*message.*',  # Unpinned messages
+        r'.*deleted.*message.*',  # Deleted messages
+        r'.*call.*duration.*',  # Call duration messages
+        r'.*missed.*call.*',  # Missed call notifications
+        r'.*you.*blocked.*contact.*',  # Block notifications
+        r'.*contact.*blocked.*you.*'  # Block notifications
+    ]
+
+    # Check first 20 lines for WhatsApp format (increased from 10)
     valid_lines = 0
-    total_checked = min(10, len(lines))  # Check first 10 lines
+    total_checked = min(20, len(lines))
 
     for line in lines[:total_checked]:
+        original_line = line
         line = line.strip()
         if not line:
             continue
 
-        # Skip system messages (usually don't follow the pattern)
-        if any(keyword in line.lower() for keyword in ['created group', 'added', 'left', 'changed']):
-            valid_lines += 1
+        # Check if it's a system message first
+        is_system_message = False
+        for pattern in system_message_patterns:
+            if re.search(pattern, original_line, re.IGNORECASE):
+                valid_lines += 1
+                is_system_message = True
+                break
+
+        if is_system_message:
             continue
 
-        # Check if line matches any WhatsApp pattern
+        # Check if line matches any WhatsApp user message pattern
         for pattern in whatsapp_patterns:
             if re.match(pattern, line):
                 valid_lines += 1
                 break
 
-    # At least 30% of checked lines should match WhatsApp format
-    if valid_lines / total_checked >= 0.3:
+    # At least 20% of checked lines should match WhatsApp format (lowered threshold)
+    if total_checked > 0 and valid_lines / total_checked >= 0.2:
         return True, None
     else:
         return False, "File doesn't appear to be a WhatsApp chat export"
