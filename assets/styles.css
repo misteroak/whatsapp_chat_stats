@@ -11,6 +11,9 @@
     --spacing-lg: 32px;
 }
 
+/* Import component-specific styles */
+@import url('./components.css');
+
 /* App container - actively used */
 .app-container {
     min-height: 100vh;
